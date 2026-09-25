@@ -174,7 +174,11 @@ canopen_app_resetCommunication() {
     }
 
     /* Configure Timer interrupt function for execution every 1 millisecond */
-    HAL_TIM_Base_Start_IT(canopenNodeSTM32->timerHandle); //1ms interrupt
+    if (canopenNodeSTM32->timerHandle != NULL) {
+        HAL_TIM_Base_Start_IT(canopenNodeSTM32->timerHandle); //1ms interrupt
+    }
+    /* else: the 1ms tick (canopen_app_interrupt) is driven externally,
+     * e.g. from a FreeRTOS task. */
 
     /* Configure CAN transmit and receive interrupt */
 
@@ -216,7 +220,10 @@ canopen_app_process() {
 
         if (reset_status == CO_RESET_COMM) {
             /* delete objects from memory */
-        	HAL_TIM_Base_Stop_IT(canopenNodeSTM32->timerHandle);
+            //TODO: Existing implemented used a dedicated timer that was disabled during communication resets. Need to determine whether a call to canopen_app_interrupt() after this point will cause issues.
+        	if (canopenNodeSTM32->timerHandle != NULL) {
+        	    HAL_TIM_Base_Stop_IT(canopenNodeSTM32->timerHandle);
+        	}
             CO_CANsetConfigurationMode((void*)canopenNodeSTM32);
             CO_delete(CO);
             log_printf("CANopenNode Reset Communication request\n");
